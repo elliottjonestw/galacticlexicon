@@ -1,6 +1,6 @@
-# 星際大典 — Star Wars English–Chinese Dictionary
+# 星際大典 — Star Wars Translation Database
 
-A lightweight, single-page web dictionary of Star Wars terminology, providing English to Traditional Chinese translations sourced directly from official subtitles. Supports both Taiwan (繁體中文－台灣) and Hong Kong (繁體中文－香港) variants of Traditional Chinese.
+A lightweight, single-page web dictionary of Star Wars terminology, providing English to Traditional Chinese translations sourced directly from official subtitles. Supports both Taiwan (繁體中文－台灣) and Hong Kong (繁體中文－香港) variants of Traditional Chinese, as well as Simplified Chinese (簡體中文).
 
 ---
 
@@ -8,7 +8,7 @@ A lightweight, single-page web dictionary of Star Wars terminology, providing En
 
 ### Live Search
 - Instant results as you type — no page reloads.
-- Search works across **all three language columns simultaneously** (English, TW Chinese, HK Chinese), regardless of which languages are currently selected for display.
+- Search works across **all four language columns simultaneously** (English, TW Chinese, HK Chinese, Simplified Chinese), regardless of which languages are currently selected for display.
 - **Accent-insensitive** English search: typing `Padme` will find `Padmé`, `Qui-Gon` finds `Qui-Gon Jinn`, etc.
 
 ### Smart Search Ranking
@@ -20,6 +20,8 @@ Results are ranked by match quality, closest match first:
 | 2nd | Starts with query | `Jedi Council`, `Jedi Temple` |
 | 3rd | Word within term starts with query | `Master (Jedi title)` |
 | 4th | Contains query anywhere | — |
+
+Results are capped at **15 entries** — refine your search to narrow them down.
 
 ### Language Selector
 Two independent dropdowns — **語言一** (Language 1) and **語言二** (Language 2) — let users choose which languages to display for each card. Each dropdown offers:
@@ -39,6 +41,20 @@ Every entry displays its translation source in the format:
 ```
 
 This records the exact piece of Star Wars media and the timestamp at which the Chinese translation first appears, providing verifiable sourcing for every term.
+
+### UI Language
+A language selector in the footer lets users switch the interface language between:
+
+- 繁體中文 (Traditional Chinese)
+- 简体中文 (Simplified Chinese)
+- English
+
+The default UI language is **auto-detected** from the user's browser/device language setting:
+- `zh-CN`, `zh-SG`, `zh-MY`, `zh-Hans` → Simplified Chinese
+- Any other `zh-*` → Traditional Chinese
+- All other locales → English
+
+When the UI language is set to English, the site title becomes **Star Wars Translation Database**; in Traditional Chinese it is **星際大典**; in Simplified Chinese it is **星际大典**.
 
 ### Randomised Order
 On each page load, all entries are displayed in a **random order** (Fisher–Yates shuffle). This makes browsing feel fresh and encourages discovery of unfamiliar terms.
@@ -98,7 +114,7 @@ The dictionary is stored as a plain CSV file with the following columns:
 
 ### Adding or Updating Entries
 
-Open `dictionary.csv` in any spreadsheet application or text editor. Each row must have all five columns. The `Traditional Chinese (Hong Kong)` and `Simplified Chinese` columns may be left empty where no translation exists — entries with empty fields will be hidden whenever that language variant is selected in the UI.
+Open `dictionary.csv` in any spreadsheet application or text editor. Each row must have all six columns. The `Traditional Chinese (Hong Kong)` and `Simplified Chinese` columns may be left empty where no translation exists — entries with empty fields will be hidden whenever that language variant is selected in the UI.
 
 The site re-reads the CSV on every page load, so no rebuild step is needed after edits.
 
@@ -162,13 +178,16 @@ Upload both `index.html` and `dictionary.csv` to any static hosting provider (Gi
 The CSV is fetched as plain text and split on newlines and commas. Column positions are fixed (0–5), so commas within field values are not currently supported. All six columns are stored in memory; the UI reads the appropriate column index based on the user's language selection.
 
 ### Search Implementation
-Search is performed client-side on the in-memory `DATA` array. For each entry, the query is tested against all three language columns regardless of the current display selection. Matching uses:
+Search is performed client-side on the in-memory `DATA` array. For each entry, the query is tested against all four language columns regardless of the current display selection. Matching uses:
 - **Latin scripts**: `String.normalize('NFD')` to strip diacritics, then lowercase comparison.
 - **CJK scripts**: Direct substring match on the original string.
 
 All four language columns (English, TW Chinese, HK Chinese, Simplified Chinese) are always searched, regardless of which two are selected for display.
 
-Scoring assigns a numeric priority (0–3) per field, and entries are sorted by their best score across all columns.
+Scoring assigns a numeric priority (0–3) per field, and entries are sorted by their best score across all columns. Results are capped at 15.
 
 ### Randomisation
 On each page load, the parsed data array is shuffled using the [Fisher–Yates algorithm](https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle) before the first render. This shuffle order is preserved when filtering — only the sort-by-relevance pass (active during a search) overrides it.
+
+### i18n
+All UI strings are stored in a `STRINGS` object keyed by `'tw'`, `'sc'`, and `'en'`. Switching UI language calls `applyUILang()`, which updates every DOM element and re-renders the result list. The active language is stored in the `uiLang` variable and initialised via `detectUILang()`, which maps `navigator.language` to one of the three supported locales.
