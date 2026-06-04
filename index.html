@@ -183,6 +183,63 @@
     .empty .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
     .empty p { font-size: 1rem; }
 
+    /* ── Language pickers ── */
+    .lang-row {
+      max-width: 720px;
+      margin: 0.65rem auto 0;
+      display: flex;
+      align-items: flex-end;
+      gap: 0.5rem;
+    }
+
+    .lang-picker {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      min-width: 0;
+    }
+
+    .lang-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .lang-select {
+      width: 100%;
+      padding: 0.55rem 2rem 0.55rem 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.88rem;
+      font-family: inherit;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%236b7280' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.65rem center;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .lang-select:focus {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 0 3px rgba(160, 120, 0, 0.12);
+    }
+
+    .lang-arrow {
+      font-size: 1rem;
+      color: var(--text-muted);
+      padding-bottom: 0.45rem;
+      flex-shrink: 0;
+      user-select: none;
+    }
+
     /* ── Mobile tweaks ── */
     @media (max-width: 480px) {
       header { padding: 1.25rem 1rem 1rem; }
@@ -214,6 +271,25 @@
       spellcheck="false"
     />
   </div>
+  <div class="lang-row">
+    <div class="lang-picker">
+      <label class="lang-label" for="lang1">語言一</label>
+      <select class="lang-select" id="lang1">
+        <option value="en" selected>English</option>
+        <option value="tw">繁體中文－台灣</option>
+        <option value="hk">繁體中文－香港</option>
+      </select>
+    </div>
+    <div class="lang-arrow">→</div>
+    <div class="lang-picker">
+      <label class="lang-label" for="lang2">語言二</label>
+      <select class="lang-select" id="lang2">
+        <option value="en">English</option>
+        <option value="tw" selected>繁體中文－台灣</option>
+        <option value="hk">繁體中文－香港</option>
+      </select>
+    </div>
+  </div>
 </div>
 
 <main>
@@ -231,11 +307,8 @@ fetch('dictionary.csv')
   .then(text => {
     DATA = text.trim().split('\n').slice(1).map(line => {
       const cols = line.split(',');
-      const ts = cols[cols.length - 1].trim();
-      const movie = cols[cols.length - 2].trim();
-      const en = cols[0].trim();
-      const zh = cols.slice(1, cols.length - 2).join(',').trim();
-      return [en, zh, movie, ts];
+      // [0]=English [1]=TW Chinese [2]=HK Chinese [3]=Source [4]=Timestamp
+      return [cols[0].trim(), cols[1].trim(), cols[2].trim(), cols[3].trim(), cols[4].trim()];
     });
     for (let i = DATA.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -272,38 +345,49 @@ function escHtml(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// Column indices: 0=English, 1=TW Chinese, 2=HK Chinese, 3=Source, 4=Timestamp
+const LANG_COL = { en: 0, tw: 1, hk: 2 };
+
 const searchEl = document.getElementById("search");
 const resultsEl = document.getElementById("results");
-const countEl = document.getElementById("result-count");
+const countEl  = document.getElementById("result-count");
+const lang1El  = document.getElementById("lang1");
+const lang2El  = document.getElementById("lang2");
 
-function score(en, zh, raw) {
+function fieldScore(val, raw) {
+  if (!raw) return Infinity;
   const q = norm(raw);
-  const normEn = norm(en);
-  let enScore = Infinity;
-  if (normEn === q) enScore = 0;
-  else if (normEn.startsWith(q)) enScore = 1;
-  else if (normEn.split(/[\s\-()]+/).some(w => w.startsWith(q))) enScore = 2;
-  else if (normEn.includes(q)) enScore = 3;
-  let zhScore = Infinity;
-  if (zh === raw) zhScore = 0;
-  else if (zh.startsWith(raw)) zhScore = 1;
-  else if (zh.includes(raw)) zhScore = 2;
-  return Math.min(enScore, zhScore);
+  const nv = norm(val);
+  if (nv === q || val === raw) return 0;
+  if (nv.startsWith(q) || val.startsWith(raw)) return 1;
+  if (nv.split(/[\s\-()]+/).some(w => w.startsWith(q))) return 2;
+  if (nv.includes(q) || val.includes(raw)) return 3;
+  return Infinity;
+}
+
+function fieldMatches(val, raw) {
+  return fieldScore(val, raw) < Infinity;
 }
 
 function render() {
-  const raw = searchEl.value.trim();
-  const q = norm(raw);
+  const raw  = searchEl.value.trim();
+  const l1   = lang1El.value;
+  const l2   = lang2El.value;
+  const c1   = LANG_COL[l1];
+  const c2   = LANG_COL[l2];
 
-  let filtered = DATA.filter(([en, zh]) => {
-    if (!q) return true;
-    if (zh.includes(raw)) return true;
-    if (norm(en).includes(q)) return true;
-    return false;
+  let filtered = DATA.filter(entry => {
+    if (!entry[c1] || !entry[c2]) return false;
+    if (!raw) return true;
+    return [0, 1, 2].some(col => fieldMatches(entry[col], raw));
   });
 
-  if (q) {
-    filtered.sort((a, b) => score(a[0], a[1], raw) - score(b[0], b[1], raw));
+  if (raw) {
+    filtered.sort((a, b) => {
+      const sa = Math.min(fieldScore(a[0], raw), fieldScore(a[1], raw), fieldScore(a[2], raw));
+      const sb = Math.min(fieldScore(b[0], raw), fieldScore(b[1], raw), fieldScore(b[2], raw));
+      return sa - sb;
+    });
   }
 
   countEl.textContent = filtered.length === DATA.length
@@ -314,18 +398,20 @@ function render() {
     resultsEl.innerHTML = `
       <div class="empty">
         <div class="empty-icon">🔭</div>
-        <p>No results found. Try a different search.</p>
+        <p>找不到結果，請嘗試其他搜尋。</p>
       </div>`;
     return;
   }
 
-  resultsEl.innerHTML = filtered.map(([en, zh, movie, ts]) => {
-    const enHl = highlight(en, raw);
-    const zhHl = zh.includes(raw) ? highlight(zh, raw) : escHtml(zh);
+  resultsEl.innerHTML = filtered.map(entry => {
+    const v1    = entry[c1];
+    const v2    = entry[c2];
+    const movie = entry[3];
+    const ts    = entry[4];
     return `
       <div class="card">
-        <div class="card-en">${enHl}</div>
-        <div class="card-zh">${zhHl}</div>
+        <div class="card-en">${highlight(v1, raw)}</div>
+        <div class="card-zh">${highlight(v2, raw)}</div>
         <div class="card-source">
           <span>翻譯來源：${escHtml(movie)} @ ${escHtml(ts)}</span>
         </div>
@@ -334,6 +420,8 @@ function render() {
 }
 
 searchEl.addEventListener("input", render);
+lang1El.addEventListener("change", render);
+lang2El.addEventListener("change", render);
 </script>
 </body>
 </html>
