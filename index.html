@@ -278,6 +278,7 @@
         <option value="en" selected>English</option>
         <option value="tw">繁體中文－台灣</option>
         <option value="hk">繁體中文－香港</option>
+        <option value="sc">簡體中文</option>
       </select>
     </div>
     <div class="lang-arrow">→</div>
@@ -287,6 +288,7 @@
         <option value="en">English</option>
         <option value="tw" selected>繁體中文－台灣</option>
         <option value="hk">繁體中文－香港</option>
+        <option value="sc">簡體中文</option>
       </select>
     </div>
   </div>
@@ -307,8 +309,8 @@ fetch('dictionary.csv')
   .then(text => {
     DATA = text.trim().split('\n').slice(1).map(line => {
       const cols = line.split(',');
-      // [0]=English [1]=TW Chinese [2]=HK Chinese [3]=Source [4]=Timestamp
-      return [cols[0].trim(), cols[1].trim(), cols[2].trim(), cols[3].trim(), cols[4].trim()];
+      // [0]=English [1]=TW [2]=HK [3]=Simplified [4]=Source [5]=Timestamp
+      return [cols[0].trim(), cols[1].trim(), cols[2].trim(), cols[3].trim(), cols[4].trim(), cols[5].trim()];
     });
     for (let i = DATA.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -345,8 +347,8 @@ function escHtml(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-// Column indices: 0=English, 1=TW Chinese, 2=HK Chinese, 3=Source, 4=Timestamp
-const LANG_COL = { en: 0, tw: 1, hk: 2 };
+// Column indices: 0=English, 1=TW Chinese, 2=HK Chinese, 3=Simplified Chinese, 4=Source, 5=Timestamp
+const LANG_COL = { en: 0, tw: 1, hk: 2, sc: 3 };
 
 const searchEl = document.getElementById("search");
 const resultsEl = document.getElementById("results");
@@ -379,13 +381,13 @@ function render() {
   let filtered = DATA.filter(entry => {
     if (!entry[c1] || !entry[c2]) return false;
     if (!raw) return true;
-    return [0, 1, 2].some(col => fieldMatches(entry[col], raw));
+    return [0, 1, 2, 3].some(col => fieldMatches(entry[col], raw));
   });
 
   if (raw) {
     filtered.sort((a, b) => {
-      const sa = Math.min(fieldScore(a[0], raw), fieldScore(a[1], raw), fieldScore(a[2], raw));
-      const sb = Math.min(fieldScore(b[0], raw), fieldScore(b[1], raw), fieldScore(b[2], raw));
+      const sa = Math.min(fieldScore(a[0], raw), fieldScore(a[1], raw), fieldScore(a[2], raw), fieldScore(a[3], raw));
+      const sb = Math.min(fieldScore(b[0], raw), fieldScore(b[1], raw), fieldScore(b[2], raw), fieldScore(b[3], raw));
       return sa - sb;
     });
   }
@@ -406,8 +408,8 @@ function render() {
   resultsEl.innerHTML = filtered.map(entry => {
     const v1    = entry[c1];
     const v2    = entry[c2];
-    const movie = entry[3];
-    const ts    = entry[4];
+    const movie = entry[4];
+    const ts    = entry[5];
     return `
       <div class="card">
         <div class="card-en">${highlight(v1, raw)}</div>

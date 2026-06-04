@@ -27,6 +27,7 @@ Two independent dropdowns — **語言一** (Language 1) and **語言二** (Lang
 - `English`
 - `繁體中文－台灣`
 - `繁體中文－香港`
+- `簡體中文`
 
 Entries that do not have data for one of the selected languages are automatically hidden from results, ensuring only complete translation pairs are shown.
 
@@ -59,6 +60,7 @@ The dictionary is stored as a plain CSV file with the following columns:
 | `English` | The Star Wars term in English |
 | `Traditional Chinese (Taiwan)` | Official Taiwan Traditional Chinese translation |
 | `Traditional Chinese (Hong Kong)` | Official Hong Kong Traditional Chinese translation (may be empty for some entries) |
+| `Simplified Chinese` | Simplified Chinese translation (may be empty for some entries) |
 | `Source Content` | The Star Wars title (in Traditional Chinese) where the translation originates |
 | `Timestamp` | Timecode (`HH:MM:SS`) of the subtitle in the source content |
 
@@ -96,7 +98,7 @@ The dictionary is stored as a plain CSV file with the following columns:
 
 ### Adding or Updating Entries
 
-Open `dictionary.csv` in any spreadsheet application or text editor. Each row must have all five columns. The `Traditional Chinese (Hong Kong)` column may be left empty if no Hong Kong translation exists — entries with empty fields will be hidden whenever that language variant is selected in the UI.
+Open `dictionary.csv` in any spreadsheet application or text editor. Each row must have all five columns. The `Traditional Chinese (Hong Kong)` and `Simplified Chinese` columns may be left empty where no translation exists — entries with empty fields will be hidden whenever that language variant is selected in the UI.
 
 The site re-reads the CSV on every page load, so no rebuild step is needed after edits.
 
@@ -157,12 +159,14 @@ Upload both `index.html` and `dictionary.csv` to any static hosting provider (Gi
 ## Technical Details
 
 ### CSV Parsing
-The CSV is fetched as plain text and split on newlines and commas. Column positions are fixed (0–4), so commas within field values are not currently supported. All five columns are stored in memory; the UI reads the appropriate column index based on the user's language selection.
+The CSV is fetched as plain text and split on newlines and commas. Column positions are fixed (0–5), so commas within field values are not currently supported. All six columns are stored in memory; the UI reads the appropriate column index based on the user's language selection.
 
 ### Search Implementation
 Search is performed client-side on the in-memory `DATA` array. For each entry, the query is tested against all three language columns regardless of the current display selection. Matching uses:
 - **Latin scripts**: `String.normalize('NFD')` to strip diacritics, then lowercase comparison.
 - **CJK scripts**: Direct substring match on the original string.
+
+All four language columns (English, TW Chinese, HK Chinese, Simplified Chinese) are always searched, regardless of which two are selected for display.
 
 Scoring assigns a numeric priority (0–3) per field, and entries are sorted by their best score across all columns.
 
