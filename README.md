@@ -1,6 +1,6 @@
 # 星際大典 — Galactic Lexicon
 
-A lightweight, single-page web dictionary of Star Wars terminology, providing English to Traditional Chinese translations sourced directly from official subtitles. Supports both Taiwan (繁體中文－台灣) and Hong Kong (繁體中文－香港) variants of Traditional Chinese, as well as Simplified Chinese (簡體中文).
+A lightweight, single-page Star Wars Translation Dictionary, providing English to Chinese translations sourced directly from official subtitles. Supports both Taiwan (繁體中文－台灣) and Hong Kong (繁體中文－香港) variants of Traditional Chinese, as well as Simplified Chinese (簡體中文).
 
 ---
 
@@ -54,7 +54,7 @@ The default UI language is **auto-detected** from the user's browser/device lang
 - Any other `zh-*` → Traditional Chinese
 - All other locales → English
 
-When the UI language is set to English, the site title becomes **Galactic Lexicon**; in Traditional Chinese it is **星際大典**; in Simplified Chinese it is **星际大典**.
+When the UI language is set to English, the site title is **Galactic Lexicon** with subtitle **Star Wars Translation Dictionary**; in Traditional Chinese: **星際大典** / **星際大戰翻譯字典**; in Simplified Chinese: **星际大典** / **星球大战翻译词典**.
 
 ### Randomised Order
 On each page load, all entries are displayed in a **random order** (Fisher–Yates shuffle). This makes browsing feel fresh and encourages discovery of unfamiliar terms.
